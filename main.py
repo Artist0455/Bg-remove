@@ -1,69 +1,75 @@
 import os
+import logging
 import requests
-from telegram import Update, InputFile, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Bot token & API key from environment variables
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-REMOVE_BG_API = os.getenv("REMOVE_BG_API")  # तुम्हें remove.bg API key डालनी होगी
-REMOVE_BG_URL = "https://api.remove.bg/v1.0/removebg"
-
-SUPPORT_CHANNEL = "https://t.me/bye_artist"
-BOT_NAME = "🖼 Background Remover Bot"
-
+REMOVE_BG_API = os.getenv("REMOVE_BG_API")  # put your remove.bg API key here
 
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("📢 Support Channel", url=SUPPORT_CHANNEL)],
-        [InlineKeyboardButton("➕ Add me to Group", url=f"https://t.me/{context.bot.username}?startgroup=true")]
+        [InlineKeyboardButton("📢 Support Channel", url="https://t.me/bye_artist")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_animation(
-        animation="https://files.catbox.moe/lhbsqt.mp4",  # कोई भी gif डाल सकते हो
-        caption=f"👋 Hello {update.effective_user.first_name}!\n\n"
-                f"I am {BOT_NAME}.\n"
-                f"Just send me any image & I will remove its background ✨",
+        animation="https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+        caption="👋 Welcome to <b>Background Remover Bot</b>!\n\n"
+                "Just send me any photo and I will remove its background for you ✨",
+        parse_mode="HTML",
         reply_markup=reply_markup
     )
 
-
-# Image background remover
-async def remove_bg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.photo:
-        await update.message.reply_text("❌ Please send a valid photo.")
-        return
-
-    file_id = update.message.photo[-1].file_id
-    file = await context.bot.get_file(file_id)
-    file_path = file.file_path
-
-    # Send to remove.bg API
-    response = requests.post(
-        "https://api.remove.bg/v1.0/removebg",
-        files={"image_file": requests.get(file_path).content},
-        data={"size": "auto"},
-        headers={"X-Api-Key": REMOVE_BG_API},
-    )
-
+# Function to remove background
+async def remove_bg(image_file_path):
+    with open(image_file_path, "rb") as f:
+        response = requests.post(
+            "https://api.remove.bg/v1.0/removebg",
+            files={"image_file": f},
+            data={"size": "auto"},
+            headers={"X-Api-Key": REMOVE_BG_API},
+        )
     if response.status_code == 200:
-        with open("no_bg.png", "wb") as f:
-            f.write(response.content)
-
-        await update.message.reply_document(InputFile("no_bg.png"))
-        os.remove("no_bg.png")
+        output_path = "no_bg.png"
+        with open(output_path, "wb") as out:
+            out.write(response.content)
+        return output_path
     else:
-        await update.message.reply_text("⚠️ Failed to remove background. Check API key or try again.")
+        return None
 
+# Handle images
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    photo = update.message.photo[-1]
+    file = await photo.get_file()
+    input_path = "input.png"
+    await file.download_to_drive(input_path)
 
+    await update.message.reply_text("⏳ Removing background... Please wait!")
+
+    output_path = await remove_bg(input_path)
+
+    if output_path:
+        await update.message.reply_document(document=open(output_path, "rb"))
+    else:
+        await update.message.reply_text("❌ Failed to remove background. Please try again later.")
+
+# Main function
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.PHOTO, remove_bg))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
