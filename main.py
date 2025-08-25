@@ -9,7 +9,7 @@ from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-REMOVE_BG_API_KEY = os.getenv("4SLJ7cmvQVrgnmmcitHQs56Y")
+REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY")
 REMOVE_BG_URL = "https://api.remove.bg/v1.0/removebg"
 
 logging.basicConfig(
