@@ -7,14 +7,14 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 REMOVE_BG_API = os.getenv("REMOVE_BG_API")  # तुम्हें remove.bg API key डालनी होगी
 REMOVE_BG_URL = "https://api.remove.bg/v1.0/removebg"
 
-SUPPORT_CHANNEL = "https://t.me/YourSupportChannel"
+SUPPORT_CHANNEL = "https://t.me/bye_artist"
 BOT_NAME = "🖼 Background Remover Bot"
 
 
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("📢 Support Channel", url= https://t.me/bye_Artist)],
+        [InlineKeyboardButton("📢 Support Channel", url=SUPPORT_CHANNEL)],
         [InlineKeyboardButton("➕ Add me to Group", url=f"https://t.me/{context.bot.username}?startgroup=true")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
