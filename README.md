@@ -1,3 +1,11 @@
+bg-remove-bot/
+├─ main.py
+├─ requirements.txt
+├─ render.yaml
+├─ .gitignore
+└─ README.md   (optional, नीचे steps दिए हैं)
+
+
 # Background Remove Telegram Bot
 
 A Telegram bot that removes image backgrounds using remove.bg API.
