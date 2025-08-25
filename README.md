@@ -1,13 +1,8 @@
 bg-remove-bot/
-
 ├─ main.py
-
 ├─ requirements.txt
-
 ├─ render.yaml
-
 ├─ .gitignore
-
 └─ README.md   (optional, नीचे steps दिए हैं)
 
 
