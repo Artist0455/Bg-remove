@@ -1,82 +1,73 @@
 import os
 import requests
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import (
+    Update, InlineKeyboardButton, InlineKeyboardMarkup, Animation
+)
+from telegram.ext import (
+    Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-BG_API_KEY = os.getenv("BG_API_KEY")  # Background remove website ka API key
-SUPPORT_CHANNEL = "https://t.me/bye_artist"
-ANIMATION_URL = "https://files.catbox.moe/lhbsqt.mp4"  # Example animation
+# 🔑 Your API Key and Bot Token
+REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY", "YOUR_REMOVE_BG_API_KEY")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_TELEGRAM_BOT_TOKEN")
 
-# ---------- START COMMAND ----------
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# 📌 /start command
+def start(update: Update, context: CallbackContext):
     keyboard = [
-        [InlineKeyboardButton("📢 Join Support Channel", url=SUPPORT_CHANNEL)]
+        [InlineKeyboardButton("📢 Support Channel", url="https://t.me/bye_artist")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_animation(
-        animation=ANIMATION_URL,
-        caption="👋 Welcome to **Background Remover Bot!**\n\n📷 Send me a photo and I'll remove its background instantly.",
+    # Animation (GIF or MP4 link)
+    animation_url = "https://files.catbox.moe/lhbsqt.mp4"
+
+    update.message.reply_animation(
+        animation=animation_url,
+        caption=(
+            "👋 Welcome to <b>Background Remover Bot</b>!\n\n"
+            "📸 Send me any photo and I will remove its background instantly.\n\n"
+            "⚡ Powered by <b>Remove.bg API</b>"
+        ),
+        parse_mode="HTML",
         reply_markup=reply_markup,
-        parse_mode="Markdown"
     )
 
-# ---------- PHOTO HANDLER ----------
-async def remove_bg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.photo:
-        await update.message.reply_text("⚠️ Please send a valid photo.")
-        return
+# 📌 Background remove function
+def remove_bg(update: Update, context: CallbackContext):
+    photo = update.message.photo[-1]  # Best quality photo
+    file = context.bot.get_file(photo.file_id)
+    file.download("input.jpg")
 
-    # Get the highest quality photo
-    photo_file = await update.message.photo[-1].get_file()
-    photo_bytes = await photo_file.download_as_bytearray()
-
-    # Call background removal API
-    url = "https://api.remove.bg/v1.0/removebg"
-    response = requests.post(
-        url,
-        files={"image_file": photo_bytes},
-        data={"size": "auto"},
-        headers={"X-Api-Key": BG_API_KEY},
-    )
+    with open("input.jpg", "rb") as f:
+        response = requests.post(
+            "https://api.remove.bg/v1.0/removebg",
+            files={"image_file": f},
+            data={"size": "auto"},
+            headers={"X-Api-Key": REMOVE_BG_API_KEY},
+        )
 
     if response.status_code == 200:
-        with open("no_bg.png", "wb") as f:
-            f.write(response.content)
-
-        await update.message.reply_document(
-            document=InputFile("no_bg.png"),
+        with open("output.png", "wb") as out:
+            out.write(response.content)
+        update.message.reply_photo(
+            photo=open("output.png", "rb"),
             caption="✅ Background removed successfully!"
         )
     else:
-        await update.message.reply_text("❌ Failed to remove background. Check API key.")
+        update.message.reply_text(
+            f"❌ Error {response.status_code}: {response.text}"
+        )
 
-# ---------- DUMMY HTTP SERVER ----------
-def run_http_server():
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"Bot is running on Render Free plan!")
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), Handler)
-    server.serve_forever()
-
-# ---------- MAIN ----------
+# 📌 Main function
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    updater = Updater(BOT_TOKEN, use_context=True)
+    dp = updater.dispatcher
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.PHOTO, remove_bg))
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.photo, remove_bg))
 
-    # Start dummy HTTP server in thread
-    threading.Thread(target=run_http_server, daemon=True).start()
-
-    # Run bot polling
-    app.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     main()
