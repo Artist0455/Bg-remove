@@ -16,12 +16,12 @@ logging.basicConfig(
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("📢 Support Channel", url="https://t.me/YourChannelLink")]
+        [InlineKeyboardButton("📢 Support Channel", url="https://t.me/bye_artist")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_animation(
-        animation="https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif",
+        animation="https://files.catbox.moe/lhbsqt.mp4",
         caption="👋 Hi! Send me a photo and I'll remove its background instantly!",
         reply_markup=reply_markup
     )
