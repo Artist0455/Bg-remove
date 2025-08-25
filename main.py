@@ -60,11 +60,10 @@ def remove_bg(update: Update, context: CallbackContext):
 
 # 📌 Main function
 def main():
-application = Application.builder().token("YOUR_BOT_TOKEN").build()
+    app = Application.builder().token("YOUR_BOT_TOKEN").build()
+    app.add_handler(CommandHandler("start", start))
+    app.run_polling()
 
-application.add_handler(MessageHandler(filters.PHOTO, remove_bg))
-
-application.run_polling()
 
     updater.idle()
 
