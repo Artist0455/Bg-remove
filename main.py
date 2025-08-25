@@ -1,11 +1,9 @@
 import os
 import requests
 from telegram import (
-    Update, InlineKeyboardButton, InlineKeyboardMarkup, Animation
-)
-from telegram.ext import (
-    Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-)
+    Update, InlineKeyboardButton, InlineKeyboardMarkup, Animation)
+from telegram.ext import 
+    Application, CommandHandler, MessageHandler, filters, ContextTypes)
 
 # 🔑 Your API Key and Bot Token
 REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY", "YOUR_REMOVE_BG_API_KEY")
@@ -60,13 +58,11 @@ def remove_bg(update: Update, context: CallbackContext):
 
 # 📌 Main function
 def main():
-    updater = Updater(BOT_TOKEN, use_context=True)
-    dp = updater.dispatcher
+    application = Application.builder().token("YOUR_BOT_TOKEN").build()
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.photo, remove_bg))
+application.add_handler(MessageHandler(filters.PHOTO, remove_bg))
 
-    updater.start_polling()
+application.run_polling()
     updater.idle()
 
 if __name__ == "__main__":
