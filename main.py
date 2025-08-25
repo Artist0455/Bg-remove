@@ -2,8 +2,7 @@ import os
 import requests
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, Animation)
-from telegram.ext import 
-    Application, CommandHandler, MessageHandler, filters, ContextTypes)
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 # 🔑 Your API Key and Bot Token
 REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY", "YOUR_REMOVE_BG_API_KEY")
