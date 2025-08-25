@@ -1,67 +1,31 @@
 import os
-import logging
-import requests
-import filetype   # imghdr ke jagah ye use hoga
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from telegram.ext import ApplicationBuilder, CommandHandler
 
-TOKEN = os.getenv("BOT_TOKEN")
-API_KEY = os.getenv("API_KEY")  # Remove.bg ya koi bhi API key
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
+async def start(update, context):
+    await update.message.reply_text("✅ Bot is running!")
 
-# /start command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("📢 Support Channel", url="https://t.me/bye_artist")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_animation(
-        animation="https://files.catbox.moe/lhbsqt.mp4",
-        caption="👋 Hi! Send me a photo and I'll remove its background instantly!",
-        reply_markup=reply_markup
-    )
-
-# Background remove function
-async def remove_bg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.photo:
-        await update.message.reply_text("❌ Please send a valid photo.")
-        return
-
-    file = await update.message.photo[-1].get_file()
-    file_path = "input.jpg"
-    await file.download_to_drive(file_path)
-
-    # filetype se check karenge
-    kind = filetype.guess(file_path)
-    if not kind or kind.mime.split("/")[0] != "image":
-        await update.message.reply_text("❌ File is not a valid image.")
-        return
-
-    with open(file_path, "rb") as f:
-        response = requests.post(
-            "https://api.remove.bg/v1.0/removebg",
-            files={"image_file": f},
-            data={"size": "auto"},
-            headers={"X-Api-Key": API_KEY},
-        )
-
-    if response.status_code == 200:
-        output_path = "output.png"
-        with open(output_path, "wb") as out:
-            out.write(response.content)
-        await update.message.reply_document(document=open(output_path, "rb"))
-    else:
-        await update.message.reply_text("❌ Failed to remove background. Check API key.")
+def run_http_server():
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Bot is running")
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    server.serve_forever()
 
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.PHOTO, remove_bg))
+
+    # HTTP server ko alag thread me chalao
+    threading.Thread(target=run_http_server, daemon=True).start()
+
+    # Bot polling chalao
     app.run_polling()
 
 if __name__ == "__main__":
